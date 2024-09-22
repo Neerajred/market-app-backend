@@ -1,5 +1,4 @@
 const express = require('express');
-const { MongoClient } = require('mongodb'); // Import MongoDB Client
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -10,20 +9,23 @@ const port = 5500;
 app.use(cors());
 app.use(bodyParser.json());
 
-const uri = "mongodb+srv://neerajmukkara:Neeraj123@userdata.8kbakbb.mongodb.net/?retryWrites=true&w=majority&appName=UserData"; // Replace <db_password> with your actual MongoDB password
 
 let db;
 let usersCollection;
 
 // Initialize MongoDB connection
 // Initialize MongoDB connection
-MongoClient.connect(uri)
-  .then(client => {
-    console.log('Connected to MongoDB');
-    db = client.db('UserData'); // Database name
-    usersCollection = db.collection('users'); // Collection name
-  })
-  .catch(err => console.error('Failed to connect to MongoDB', err));
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb+srv://neerajmukkara:Neeraj123@userdata.8kbakbb.mongodb.net/<dbname>', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  tls: true, // Enable TLS
+  tlsAllowInvalidCertificates: false, // Optional, depending on your cert settings
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch((error) => console.error('Failed to connect to MongoDB:', error));
+
 
 
 // API endpoint to check if the email already exists
@@ -81,7 +83,7 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send("Hello Gurur");
+  res.send("Hello Guru");
 });
 
 app.listen(port, () => {
