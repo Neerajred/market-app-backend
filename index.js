@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+require('dotenv').config(); // Load environment variables
 
 const app = express();
 const port = 5500;
@@ -9,35 +11,30 @@ const port = 5500;
 app.use(cors());
 app.use(bodyParser.json());
 
-
 let db;
 let usersCollection;
 
 // Initialize MongoDB connection
-// Initialize MongoDB connection
-const mongoose = require('mongoose');
-
-mongoose.connect('mongodb+srv://neerajmukkara:Neeraj123@userdata.8kbakbb.mongodb.net/<dbname>', {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   tls: true, // Enable TLS
   tlsAllowInvalidCertificates: false, // Optional, depending on your cert settings
 })
-.then(() => console.log('Connected to MongoDB'))
+.then(() => {
+  console.log('Connected to MongoDB');
+  // Define usersCollection after connecting
+  db = mongoose.connection;
+  usersCollection = db.collection('users'); // Replace with your actual collection name
+})
 .catch((error) => console.error('Failed to connect to MongoDB:', error));
-
-
 
 // API endpoint to check if the email already exists
 app.post('/check-email', async (req, res) => {
   const { email } = req.body;
   try {
     const user = await usersCollection.findOne({ email });
-    if (user) {
-      res.status(200).json({ exists: true });
-    } else {
-      res.status(200).json({ exists: false });
-    }
+    res.status(200).json({ exists: !!user });
   } catch (error) {
     console.error('Error checking email:', error.message);
     res.status(500).json({ message: 'Internal server error' });
@@ -63,15 +60,13 @@ app.post('/register', async (req, res) => {
 });
 
 // API endpoint to login a user
-const SECRET_KEY = 'FreshMart'; // Replace with your secret key
-
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const user = await usersCollection.findOne({ email, password });
     if (user) {
-      const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
+      const token = jwt.sign({ id: user._id, email: user.email }, process.env.SECRET_KEY, { expiresIn: '1h' });
       res.status(200).json({ message: 'Login successful', user, token });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
