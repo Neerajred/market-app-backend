@@ -29,7 +29,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   console.log('Connected to MongoDB');
   // Define usersCollection after connecting
   db = mongoose.connection;
-  usersCollection = db.collection('users'); // Replace with your actual collection name
+  usersCollection = db.collection('MarketAppUserData'); // Replace with your actual collection name
 })
 .catch((error) => console.error('Failed to connect to MongoDB:', error));
 
