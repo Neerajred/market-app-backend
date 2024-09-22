@@ -8,7 +8,13 @@ require('dotenv').config(); // Load environment variables
 const app = express();
 const port = 5500;
 
-app.use(cors());
+const corsOptions = {
+  origin: 'https://freshmartindia.netlify.app', 
+  credentials: true, 
+};
+
+app.use(cors(corsOptions));
+
 app.use(bodyParser.json());
 
 let db;
@@ -16,8 +22,6 @@ let usersCollection;
 
 // Initialize MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   tls: true, // Enable TLS
   tlsAllowInvalidCertificates: false, // Optional, depending on your cert settings
 })
