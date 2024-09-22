@@ -1,5 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { MongoClient } = require('mongodb'); // Import MongoDB Client
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -10,95 +10,79 @@ const port = 5500;
 app.use(cors());
 app.use(bodyParser.json());
 
+const uri = "mongodb+srv://neerajmukkara:Neeraj123@userdata.8kbakbb.mongodb.net/?retryWrites=true&w=majority&appName=UserData"; // Replace <db_password> with your actual MongoDB password
 
-// check the email if it exists before or not
-app.post('/check-email', (req, res) => {
+let db;
+let usersCollection;
+
+// Initialize MongoDB connection
+// Initialize MongoDB connection
+MongoClient.connect(uri)
+  .then(client => {
+    console.log('Connected to MongoDB');
+    db = client.db('UserData'); // Database name
+    usersCollection = db.collection('users'); // Collection name
+  })
+  .catch(err => console.error('Failed to connect to MongoDB', err));
+
+
+// API endpoint to check if the email already exists
+app.post('/check-email', async (req, res) => {
   const { email } = req.body;
-
-  db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
-    if (err) {
-      console.error('Error fetching user:', err.message);
-      res.status(500).json({ message: 'Internal server error' });
-    } else if (row) {
+  try {
+    const user = await usersCollection.findOne({ email });
+    if (user) {
       res.status(200).json({ exists: true });
     } else {
       res.status(200).json({ exists: false });
     }
-  });
+  } catch (error) {
+    console.error('Error checking email:', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
-
-// Initialize SQLite database
-const db = new sqlite3.Database('usersDB.db', (err) => {
-    if (err) {
-      console.error('Error opening database:', err.message);
-    } else {
-      db.run(`
-        CREATE TABLE IF NOT EXISTS users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          fullName TEXT NOT NULL,
-          email TEXT NOT NULL,
-          mobileNumber TEXT NOT NULL,
-          password TEXT NOT NULL
-        )
-      `, (err) => {
-        if (err) {
-          console.error('Error creating table:', err.message);
-        }
-      });
-    }
-  });  
 
 // API endpoint to register a new user
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
   const { fullName, email, mobileNumber, password } = req.body;
 
-  db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
-    if (err) {
-      console.error('Error fetching user:', err.message);
-      res.status(500).json({ message: 'Internal server error' });
-    } else if (row) {
+  try {
+    const user = await usersCollection.findOne({ email });
+    if (user) {
       res.status(400).json({ message: 'User with this email already exists' });
     } else {
-      db.run(
-        'INSERT INTO users (fullName, email, mobileNumber, password) VALUES (?, ?, ?, ?)'
-      , [fullName, email, mobileNumber, password], function (err) {
-        if (err) {
-          console.error('Error inserting user:', err.message);
-          res.status(500).json({ message: 'Internal server error' });
-        } else {
-          res.status(201).json({ message: 'User registered successfully' });
-        }
-      });
+      await usersCollection.insertOne({ fullName, email, mobileNumber, password });
+      res.status(201).json({ message: 'User registered successfully' });
     }
-  });
+  } catch (error) {
+    console.error('Error registering user:', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
-
 
 // API endpoint to login a user
 const SECRET_KEY = 'FreshMart'; // Replace with your secret key
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
-  db.get(
-    'SELECT * FROM users WHERE email = ? AND password = ?'
-  , [email, password], (err, row) => {
-    if (err) {
-      console.error('Error fetching user:', err.message);
-      res.status(500).json({ message: 'Internal server error' });
-    } else if (row) {
-      const token = jwt.sign({ id: row.id, email: row.email }, SECRET_KEY, { expiresIn: '1h' });
-      res.status(200).json({ message: 'Login successful',user:row, token });
+  try {
+    const user = await usersCollection.findOne({ email, password });
+    if (user) {
+      const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
+      res.status(200).json({ message: 'Login successful', user, token });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
     }
-  });
+  } catch (error) {
+    console.error('Error logging in:', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-
-app.get('/',(req,res)=>{
-    res.send("Hello Gurur");
-})
+app.get('/', (req, res) => {
+  res.send("Hello Gurur");
+});
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
