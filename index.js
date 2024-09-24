@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+require('dotenv').config(); 
 
 // Initialize the Express app
 const app = express();
@@ -12,8 +13,12 @@ const port = 5500;
 app.use(cors());
 app.use(bodyParser.json());
 
+const db_username= process.env.MONGODB_USER_NAME;
+const db_password = process.env.MONGODB_PASS;
+
+
 // MongoDB connection
-const dbURI = 'mongodb+srv://neerajmukkara:Neeraj123@userdata.8kbakbb.mongodb.net/MarketAppUserData?retryWrites=true&w=majority&appName=MarketAppUserData';
+const dbURI = `mongodb+srv://${db_username}:${db_password}@userdata.8kbakbb.mongodb.net/MarketAppUserData?retryWrites=true&w=majority&appName=MarketAppUserData`;
 
 
 mongoose.connect(dbURI)
@@ -32,7 +37,7 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // Secret key for JWT
-const SECRET_KEY = 'FreshMart'; 
+const SECRET_KEY = process.env.SECRET_KEY; 
 
 // Check if the email exists
 app.post('/check-email', async (req, res) => {
